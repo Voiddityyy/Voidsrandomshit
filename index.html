@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ratio Point Allocator</title>
+  <style>
+    /* Theme variables */
+    :root {
+      --bg: #2e2e2e;
+      --card-bg: #393939;
+      --text: #e0e0e0;
+      --input-bg: #4a4a4a;
+      --input-border: #888;
+      --accent: #61dafb;
+      --shadow: rgba(0,0,0,0.6);
+      --border-thick: 2px;
+    }
+    .theme-light {
+      --bg: #f0f0f0;
+      --card-bg: #ffffff;
+      --text: #2e2e2e;
+      --input-bg: #ffffff;
+      --input-border: #cccccc;
+      --accent: #2e2e2e;
+      --shadow: rgba(0,0,0,0.1);
+      --border-thick: 1px;
+    }
+    .theme-neon {
+      --bg: #1a1a1a;
+      --card-bg: #222222;
+      --text: #39ff14;
+      --input-bg: #292929;
+      --input-border: #39ff14;
+      --accent: #ff073a;
+      --shadow: rgba(57,255,20,0.3);
+      --border-thick: 2px;
+    }
+    .theme-retro {
+      --bg: #272822;
+      --card-bg: #383830;
+      --text: #f8f8f2;
+      --input-bg: #474741;
+      --input-border: #a6e22e;
+      --accent: #f92672;
+      --shadow: rgba(0,0,0,0.7);
+      --border-thick: 2px;
+    }
+    .theme-pastel {
+      --bg: #fdeff9;
+      --card-bg: #ffffff;
+      --text: #333333;
+      --input-bg: #f8f8f9;
+      --input-border: #ffb3ba;
+      --accent: #ffb3ba;
+      --shadow: rgba(0,0,0,0.1);
+      --border-thick: 1px;
+    }
+    .theme-solarized {
+      --bg: #fdf6e3;
+      --card-bg: #eee8d5;
+      --text: #657b83;
+      --input-bg: #fdf6e3;
+      --input-border: #93a1a1;
+      --accent: #b58900;
+      --shadow: rgba(0,0,0,0.1);
+      --border-thick: 1px;
+    }
+    .theme-forest {
+      --bg: #2b3e2f;
+      --card-bg: #3a4d3c;
+      --text: #c9d6c5;
+      --input-bg: #3a4d3c;
+      --input-border: #c9d6c5;
+      --accent: #9cbf9e;
+      --shadow: rgba(0,0,0,0.5);
+      --border-thick: 2px;
+    }
+    .theme-sunset {
+      --bg: #ffeedb;
+      --card-bg: #ffd4a3;
+      --text: #4b3832;
+      --input-bg: #ffd4a3;
+      --input-border: #e07a5f;
+      --accent: #e07a5f;
+      --shadow: rgba(0,0,0,0.2);
+      --border-thick: 1px;
+    }
+    .theme-monochrome {
+      --bg: #1f1f1f;
+      --card-bg: #2b2b2b;
+      --text: #f0f0f0;
+      --input-bg: #2b2b2b;
+      --input-border: #f0f0f0;
+      --accent: #f0f0f0;
+      --shadow: rgba(255,255,255,0.1);
+      --border-thick: 2px;
+    }
+
+    /* Global styles */
+    * { box-sizing: border-box; transition: background-color 0.3s, color 0.3s, box-shadow 0.3s; }
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      position: relative;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 8px 16px var(--shadow), inset 0 0 8px rgba(0,0,0,0.2);
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    h1 {
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
+      text-align: center;
+    }
+
+    /* Theme switcher */
+    .theme-switcher {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    select {
+      padding: 0.25rem 0.5rem;
+      border: var(--border-thick) solid var(--input-border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+      cursor: pointer;
+    }
+
+    fieldset {
+      border: var(--border-thick) solid var(--input-border);
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+    }
+    legend { padding: 0 0.5rem; font-weight: bold; }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem 1rem;
+      align-items: center;
+    }
+    label { font-size: 0.95rem; }
+    input[type="number"] {
+      width: 4.5rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.95rem;
+      border: var(--border-thick) solid var(--input-border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+    input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.5rem;
+      border-bottom: var(--border-thick) solid var(--input-border);
+    }
+    th {
+      font-size: 0.95rem;
+      font-weight: normal;
+      color: var(--text);
+    }
+    td:nth-child(2), td:nth-child(3) { text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="theme-switcher">
+      <label for="themeSelect">Theme:</label>
+      <select id="themeSelect">
+        <option value="">Default</option>
+        <option value="theme-light">Light</option>
+        <option value="theme-pastel">Pastel</option>
+        <option value="theme-solarized">Solarized</option>
+        <option value="theme-forest">Forest</option>
+        <option value="theme-sunset">Sunset</option>
+        <option value="theme-monochrome">Monochrome</option>
+        <option value="theme-neon">Neon</option>
+        <option value="theme-retro">Retro</option>
+      </select>
+    </div>
+    <h1>Point Ratio Allocator</h1>
+    <fieldset>
+      <legend>Settings</legend>
+      <div class="field-group">
+        <label for="totalPoints">Total Points:</label>
+        <input type="number" id="totalPoints" value="0" min="0" />
+
+        <label for="r1">IP Gain Ratio:</label>
+        <input type="number" id="r1" value="0" min="0" />
+
+        <label for="r2">Ascension Power Ratio:</label>
+        <input type="number" id="r2" value="0" min="0" />
+
+        <label for="r3">Star Base Mult Ratio:</label>
+        <input type="number" id="r3" value="0" min="0" />
+
+        <label for="r4">EP Gain Ratio:</label>
+        <input type="number" id="r4" value="0" min="0" />
+
+        <label for="r5">Gen Power Exponent Ratio:</label>
+        <input type="number" id="r5" value="0" min="0" />
+
+        <label for="r6">Common Exponent Ratio:</label>
+        <input type="number" id="r6" value="0" min="0" />
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Allocation</legend>
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Ratio</th>
+            <th>Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>IP Gain</td><td id="o1r">-</td><td id="o1v">-</td></tr>
+          <tr><td>Ascension Power</td><td id="o2r">-</td><td id="o2v">-</td></tr>
+          <tr><td>Star Base Mult</td><td id="o3r">-</td><td id="o3v">-</td></tr>
+          <tr><td>EP Gain</td><td id="o4r">-</td><td id="o4v">-</td></tr>
+          <tr><td>Gen Power Exponent</td><td id="o5r">-</td><td id="o5v">-</td></tr>
+          <tr><td>Common Exponent</td><td id="o6r">-</td><td id="o6v">-</td></tr>
+        </tbody>
+      </table>
+    </fieldset>
+  </div>
+
+  <script>
+    const totalInput = document.getElementById('totalPoints');
+    const ratios = [1,2,3,4,5,6].map(i => document.getElementById('r'+i));
+    const outRatios = [1,2,3,4,5,6].map(i => document.getElementById('o'+i+'r'));
+    const outValues = [1,2,3,4,5,6].map(i => document.getElementById('o'+i+'v'));
+    const themeSelect = document.getElementById('themeSelect');
+
+    function calculate() {
+      const total = parseFloat(totalInput.value) || 0;
+      const w = ratios.map(r => parseFloat(r.value) || 0);
+      const sum = w.reduce((a,b) => a+b,0);
+      w.forEach((val, idx) => {
+        outRatios[idx].textContent = val;
+        const pts = sum > 0 ? (val/sum) * total : 0;
+        outValues[idx].textContent = pts.toFixed(2);
+      });
+    }
+
+    [totalInput, ...ratios].forEach(el => el.addEventListener('input', calculate));
+    calculate();
+
+    themeSelect.addEventListener('change', () => {
+      document.body.className = themeSelect.value;
+    });
+  </script>
+</body>
+</html>
